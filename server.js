@@ -1,24 +1,39 @@
 const express = require('express');
 const cors = require('cors');
+const bodyParser = require('body-parser');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
+// Middlewares
 app.use(cors());
-app.use(express.json());
+app.use(bodyParser.json());
 
-// Simple POST endpoint to simulate AI
-app.post('/chat', (req, res) => {
+// Route to forward chat to Ollama
+app.post('/chat', async (req, res) => {
   const { prompt } = req.body;
 
-  console.log("Received prompt:", prompt);
+  try {
+    const response = await fetch('http://localhost:11434/api/chat', {  // 🔥 Local Ollama connection
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'mistral',
+        prompt: prompt,
+        stream: false
+      }),
+    });
 
-  // Dummy AI response for now
-  const fakeResponse = `You said: ${prompt}. Here's my AI answer! 🚀`;
-  res.json({ response: fakeResponse });
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Failed to connect to AI.' });
+  }
 });
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
+
